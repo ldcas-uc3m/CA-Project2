@@ -1,11 +1,11 @@
 using namespace std;
-
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
 #include <random>
 #include <cassert>
 #include <fstream>
+#include <iomanip>
 
 
 class Universe{
@@ -43,6 +43,175 @@ class Universe{
 const double G = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
 
+Universe pupulateUniverse(double size_enclosure, int random_seed, int num_objects, const char ** argcv){
+        // distribution generation
+    random_device rd;
+    mt19937_64 gen64;  // generate object
+    uniform_real_distribution<> dis(0.0, size_enclosure);
+    normal_distribution<> d{1e21, 1e15};
+
+    gen64.seed(random_seed);  // introduce seed
+
+    // big bang
+    Universe universe(num_objects, size_enclosure);
+    
+    // open input
+    ofstream inFile("init_config.txt", ofstream::out);  // open file
+    inFile << argcv[4] << " " << argcv[5] << " " << argcv[1] << endl;
+    
+    // populate
+    for(int i = 0; i < num_objects; i++){
+        universe.px[i] = dis(gen64);
+        universe.py[i] = dis(gen64);
+        universe.pz[i] = dis(gen64);
+        universe.m[i] = d(gen64);
+
+        inFile << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i]
+        << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
+        << " " << universe.m[i] << endl;
+    }
+
+    inFile.close();
+    return universe;
+}
+ void mergeObjects(Universe universe, int i, int j){
+    universe.vx[i] = universe.vx[i] + universe.vx[j];
+    universe.vy[i] = universe.vy[i] + universe.vy[j];
+    universe.vz[i] = universe.vz[i] + universe.vz[j];
+    universe.m[i] = universe.m[i] + universe.m[j];
+}
+ void updatePosition(Universe universe, double time_step, int i){
+            // velocity calculation
+            universe.vx[i] += (universe.fx[i]/universe.m[i]) * time_step;
+            universe.vy[i] += (universe.fy[i]/universe.m[i]) * time_step;
+            universe.vz[i] += (universe.fz[i]/universe.m[i]) * time_step;
+            
+            //reset force 
+            universe.fx[i] = 0;
+            universe.fy[i] = 0;
+            universe.fz[i] = 0;
+
+            // position calculation
+            universe.px[i] += universe.vx[i] * time_step;
+            universe.py[i] += universe.vy[i] * time_step;
+            universe.pz[i] += universe.vz[i] * time_step;
+}
+void reboundEffect(Universe universe, int size_enclosure, int i){
+    
+            if(universe.px[i] <= 0){
+                universe.px[i] = 0;
+                universe.vx[i] = - universe.vx[i];
+            } else if(universe.px[i] >= size_enclosure){
+                universe.px[i] = size_enclosure;
+                universe.vx[i] = - universe.vx[i];
+            }
+
+            if(universe.py[i] <= 0){
+                universe.py[i] = 0;
+                universe.vy[i] = - universe.vy[i];
+            } else if(universe.py[i] >= size_enclosure){
+                universe.py[i] = size_enclosure;
+                universe.vy[i] = - universe.vy[i];
+            }
+
+            if(universe.pz[i] <= 0){
+                universe.pz[i] = 0;
+                universe.vz[i] = - universe.vz[i];
+            } else if(universe.pz[i] >= size_enclosure){
+                universe.pz[i] = size_enclosure;
+                universe.vz[i] = - universe.vz[i];
+            }
+
+}
+void forceBetweenTwoObjects(Universe universe, double distance, double dx, double dy , double dz , int i, int j){
+                   
+                    double dfx = (G * universe.m[i] * universe.m[j] * dx) / (distance*distance*distance);
+                    double dfy = (G * universe.m[i] * universe.m[j] * dy) / (distance*distance*distance);
+                    double dfz = (G * universe.m[i] * universe.m[j] * dz) / (distance*distance*distance);
+
+                    // a forces
+                    universe.fx[i] += dfx;
+                    universe.fy[i] += dfy;
+                    universe.fz[i] += dfz;
+
+                    // b forces
+                    universe.fx[j] -= dfx;
+                    universe.fy[j] -= dfy;
+                    universe.fz[j] -= dfz;
+}
+
+void kernel(Universe universe ,int num_objects, int size_enclosure, int num_iterations,double time_step, const char ** argcv){
+     // open output
+    ofstream outFile("final_config.txt");
+    outFile << argcv[4] << " " << argcv[5] << " " << argcv[1] << endl;
+
+    // extra vars
+    int curr_objects = num_objects;
+    bool *deleted = (bool *)calloc(num_objects, sizeof(bool));  // bytemap of objects -> if true, object is deleted
+
+
+    /* ---
+    KERNEL
+    --- */
+    
+    for(int iteration = 0; iteration < num_iterations; iteration++){
+        for(int i = 0; i < num_objects; i++){
+            if(deleted[i]) continue;
+
+            for(int j = i + 1; j < num_objects; j++){
+                if(deleted[j]) continue;
+                
+                /* ---
+                FORCE COMPUTATION
+                --- */
+                
+                // distance
+                double dx = universe.px[j] - universe.px[i];
+                double dy = universe.py[j] - universe.py[i];
+                double dz = universe.pz[j] - universe.pz[i];
+                double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+                if(distance <= COL_DISTANCE){
+                    /* ---
+                    OBJECT COLLISION
+                    --- */
+
+                    // merge objects into a (i)
+                    mergeObjects(universe, i, j);
+                    // delete b (j)
+                    curr_objects--;
+                    deleted[j] = true;
+
+                    // force between a & b is 0
+                } else{
+                forceBetweenTwoObjects(universe, distance, dx,dy ,dz, i, j);
+                }
+            }
+            
+            /* ---
+            UPDATE POSITION
+            --- */
+            // velocity calculation
+            updatePosition(universe, time_step, i);
+            /* ---
+            REBOUND EFFECT
+            --- */
+            reboundEffect(universe, size_enclosure, i);
+            /* ---
+            OUTPUT
+            --- */
+    
+            if((iteration == num_iterations - 1) ||  curr_objects == 1){  // final positions
+                outFile << fixed << setprecision(3)  << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i] 
+                << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
+                << " " << universe.m[i] << endl;
+            }
+        }
+    }
+
+    outFile.close();
+
+}
 
 int main(int argc, const char ** argcv){
 
@@ -136,159 +305,8 @@ int main(int argc, const char ** argcv){
         return -2;
     }
 
-
-    // distribution generation
-    random_device rd;
-    mt19937_64 gen64;  // generate object
-    uniform_real_distribution<> dis(0.0, size_enclosure);
-    normal_distribution<> d{1e21, 1e15};
-
-    gen64.seed(random_seed);  // introduce seed
-
-    // big bang
-    Universe universe(num_objects, size_enclosure);
-    
-    // open input
-    ofstream inFile("init_config.txt", ofstream::out);  // open file
-    inFile << argcv[4] << " " << argcv[5] << " " << argcv[1] << endl;
-    
-    // populate
-    for(int i = 0; i < num_objects; i++){
-        universe.px[i] = dis(gen64);
-        universe.py[i] = dis(gen64);
-        universe.pz[i] = dis(gen64);
-        universe.m[i] = d(gen64);
-
-        inFile << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i]
-        << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
-        << " " << universe.m[i] << endl;
-    }
-
-    inFile.close();
-    
-    // open output
-    ofstream outFile("final_config.txt");
-    outFile << argcv[4] << " " << argcv[5] << " " << argcv[1] << endl;
-
-    // extra vars
-    int curr_objects = num_objects;
-    bool *deleted = (bool *)calloc(num_objects, sizeof(bool));  // bytemap of objects -> if true, object is deleted
-
-
-    /* ---
-    KERNEL
-    --- */
-    
-    for(int iteration = 0; iteration < num_iterations; iteration++){
-        for(int i = 0; i < num_objects; i++){
-            if(deleted[i]) continue;
-
-            for(int j = i + 1; j < num_objects; j++){
-                if(deleted[j]) continue;
-                
-                /* ---
-                FORCE COMPUTATION
-                --- */
-                
-                // distance
-                double dx = universe.px[j] - universe.px[i];
-                double dy = universe.py[j] - universe.py[i];
-                double dz = universe.pz[j] - universe.pz[i];
-                double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-
-                if(distance <= COL_DISTANCE){
-                    /* ---
-                    OBJECT COLLISION
-                    --- */
-
-                    // merge objects into a (i)
-                    universe.vx[i] = universe.vx[i] + universe.vx[j];
-                    universe.vy[i] = universe.vy[i] + universe.vy[j];
-                    universe.vz[i] = universe.vz[i] + universe.vz[j];
-                    universe.m[i] = universe.m[i] + universe.m[j];
-
-                    // delete b (j)
-                    curr_objects--;
-                    deleted[j] = true;
-
-                    // force between a & b is 0
-                } else{
-                
-                    double dfx = (G * universe.m[i] * universe.m[j] * dx) / (distance*distance*distance);
-                    double dfy = (G * universe.m[i] * universe.m[j] * dy) / (distance*distance*distance);
-                    double dfz = (G * universe.m[i] * universe.m[j] * dz) / (distance*distance*distance);
-
-                    // a forces
-                    universe.fx[i] += dfx;
-                    universe.fy[i] += dfy;
-                    universe.fz[i] += dfz;
-
-                    // b forces
-                    universe.fx[j] -= dfx;
-                    universe.fy[j] -= dfy;
-                    universe.fz[j] -= dfz;
-                }
-            }
-            
-            /* ---
-            UPDATE POSITION
-            --- */
-            // velocity calculation
-            universe.vx[i] += (universe.fx[i]/universe.m[i]) * time_step;
-            universe.vy[i] += (universe.fy[i]/universe.m[i]) * time_step;
-            universe.vz[i] += (universe.fz[i]/universe.m[i]) * time_step;
-            
-            //reset force 
-            universe.fx[i] = 0;
-            universe.fy[i] = 0;
-            universe.fz[i] = 0;
-
-            // position calculation
-            universe.px[i] += universe.vx[i] * time_step;
-            universe.py[i] += universe.vy[i] * time_step;
-            universe.pz[i] += universe.vz[i] * time_step;
-
-            /* ---
-            REBOUND EFFECT
-            --- */
-
-            if(universe.px[i] <= 0){
-                universe.px[i] = 0;
-                universe.vx[i] = - universe.vx[i];
-            } else if(universe.px[i] >= size_enclosure){
-                universe.px[i] = size_enclosure;
-                universe.vx[i] = - universe.vx[i];
-            }
-
-            if(universe.py[i] <= 0){
-                universe.py[i] = 0;
-                universe.vy[i] = - universe.vy[i];
-            } else if(universe.py[i] >= size_enclosure){
-                universe.py[i] = size_enclosure;
-                universe.vy[i] = - universe.vy[i];
-            }
-
-            if(universe.pz[i] <= 0){
-                universe.pz[i] = 0;
-                universe.vz[i] = - universe.vz[i];
-            } else if(universe.pz[i] >= size_enclosure){
-                universe.pz[i] = size_enclosure;
-                universe.vz[i] = - universe.vz[i];
-            }
-
-            /* ---
-            OUTPUT
-            --- */
-    
-            if((iteration == num_iterations - 1) ||  curr_objects == 1){  // final positions
-                outFile << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i] 
-                << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
-                << " " << universe.m[i] << endl;
-            }
-        }
-    }
-
-    outFile.close();
+    Universe universe = pupulateUniverse(size_enclosure, random_seed,num_objects, argcv);
+    kernel(universe, num_objects, size_enclosure, num_iterations, time_step, argcv);
 
     return 0;
 }
