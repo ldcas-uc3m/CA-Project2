@@ -107,13 +107,18 @@ void updatePosition(Object *a, double time_step){
 }
 
 
-void mergeObjects(Object * a, Object * b){
+void mergeObjects(Object *a, Object *b){
+    /*
+    Merges two objects into one.
+    */
 
     // merge objects into a
     a->m = a->m + b->m;
     a->vx = a->vx + b->vx;
     a->vy = a->vy + b->vy;
     a->vz = a->vz + b->vz;
+
+    delete(&b);
 }
 
 
@@ -124,10 +129,11 @@ bool forceComputation(Object *a, Object *b){
     */
 
     // distance
-    double dx = b->px - a->px;
-    double dy = b->py - a->py;
-    double dz = b->pz - a->pz;
-    double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    const double dx = b->px - a->px; 
+    const double dy = b->py - a->py;
+    const double dz = b->pz - a->pz;
+    const double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    /* note these vars are constant bc they will be out of scope outside the function */
 
     if(distance <= COL_DISTANCE){
         // Object colision
@@ -139,9 +145,9 @@ bool forceComputation(Object *a, Object *b){
         return true;  // flag colision
 
     } else{
-        double dfx = (g * a->m * b->m * dx) / (distance*distance*distance);
-        double dfy = (g * a->m * b->m * dy) / (distance*distance*distance);
-        double dfz = (g * a->m * b->m * dz) / (distance*distance*distance);
+        const double dfx = (g * a->m * b->m * dx) / (distance*distance*distance);
+        const double dfy = (g * a->m * b->m * dy) / (distance*distance*distance);
+        const double dfz = (g * a->m * b->m * dz) / (distance*distance*distance);
     
         // a force
         a->fx += dfx;
@@ -304,6 +310,7 @@ int main(int argc, const char ** argcv){
     --- */
  
     for(int iteration = 0; iteration < num_iterations; iteration++){
+        if(curr_objects == 1) break;
         for(int i = 0; i < num_objects; i++){
             if(deleted[i]) continue;
             Object *a = &universe[i];
