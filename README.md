@@ -5,7 +5,7 @@ By team 89-02: Luis Daniel Casais Mezquida, Ivan Darío Cersósimo & Pablo Ruiz 
 This project has as a fundamental goal to help students to acquire concerns on performance of parallel programs and to get familiarized with parallel programming techniques. In addition, they will get introduced to performance evaluation techniques for parallel programs.  
 More specifically, the project focuses in the development of parallel software in the C++ programming language (including the latest versions), starting from sequential software previously developed.  
   
-In this project you will generate parallel versions from the sequential versions of the gravitational simulation application developed in the rst project. For code parallelization you will be using OpenMP.  
+In this project you will generate parallel versions from the sequential versions of the gravitational simulation application developed in the [first project](https://github.com/ldcas-uc3m/CA-Project1). For code parallelization you will be using OpenMP.  
 Two versions of the program will be implemented using the arrays of structures/objects (``paos``) and structures/objects of arrays (``psoa``) techniques.  
 The program must accurately produce the same results than the sequential versions of the corresponding applications.
 
