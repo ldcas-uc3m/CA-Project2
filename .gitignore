@@ -3,9 +3,8 @@ cmake-*
 .vscode
 
 test*
-
+sim-v[0-9]-log
 *.txt
-
 sim-aos
 
 ###
