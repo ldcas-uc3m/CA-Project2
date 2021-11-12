@@ -7,6 +7,7 @@ using namespace std;
 #include <cassert>
 #include <fstream>
 #include <iomanip>
+#include <omp.h>
 
 
 class Object{
@@ -64,13 +65,15 @@ Object * bigBang(int num_objects, int size_enclosure, int random_seed, int time_
     inFile << fixed << setprecision(3) << size_enclosure << " " << time_step << " " << num_objects << endl;
 
     // populate
-    double x, y, z, m;
+
+    #pragma omp parallel for
     for (int i = 0; i < num_objects; i++){
-        
-        x = dis(gen64);
-        y = dis(gen64);
-        z = dis(gen64);
-        m = d(gen64);
+        double x = dis(gen64);
+        double y = dis(gen64);
+        double z = dis(gen64);
+        double m = d(gen64);
+
+        #pragma omp critical
         universe[i] = Object(x, y, z, m);
         // write to file
         inFile << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
@@ -197,6 +200,17 @@ void reboundEffect(Object *a, int size_enclosure){
 
 int main(int argc, const char ** argcv){
 
+    // thread setup
+    const int threads = omp_get_num_threads();
+
+    if(threads < 4){
+        cerr << "Not enough threads" << endl;
+        return -1;
+    }
+
+    #pragma omp parallel num_threads(threads);
+
+
     /* ---
     PARAMETERS
     --- */
@@ -315,6 +329,7 @@ int main(int argc, const char ** argcv){
             if(deleted[i]) continue;
             Object *a = &universe[i];
 
+            //#pragma omp parallel for reduction(+:sum)
             for(int j = i + 1; j < num_objects; j++){
                 if(deleted[j]) continue;
                 
