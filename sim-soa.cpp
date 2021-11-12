@@ -152,10 +152,10 @@ bool forceComputation(Universe universe, int i, int j){
     */
 
     // distance
-    double dx = universe.px[j] - universe.px[i];
-    double dy = universe.py[j] - universe.py[i];
-    double dz = universe.pz[j] - universe.pz[i];
-    double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    const double dx = universe.px[j] - universe.px[i];
+    const double dy = universe.py[j] - universe.py[i];
+    const double dz = universe.pz[j] - universe.pz[i];
+    const double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
 
     if(distance <= COL_DISTANCE){
         // Object colision
@@ -167,9 +167,9 @@ bool forceComputation(Universe universe, int i, int j){
 
     } else{
     
-        double dfx = (G * universe.m[i] * universe.m[j] * dx) / (distance*distance*distance);
-        double dfy = (G * universe.m[i] * universe.m[j] * dy) / (distance*distance*distance);
-        double dfz = (G * universe.m[i] * universe.m[j] * dz) / (distance*distance*distance);
+        const double dfx = (G * universe.m[i] * universe.m[j] * dx) / (distance*distance*distance);
+        const double dfy = (G * universe.m[i] * universe.m[j] * dy) / (distance*distance*distance);
+        const double dfz = (G * universe.m[i] * universe.m[j] * dz) / (distance*distance*distance);
 
         // a forces
         universe.fx[i] += dfx;
@@ -298,6 +298,7 @@ int main(int argc, const char ** argcv){
     --- */
     
     for(int iteration = 0; iteration < num_iterations; iteration++){
+        if(curr_objects == 1) break;
         for(int i = 0; i < num_objects; i++){
             if(deleted[i]) continue;
 
@@ -310,7 +311,6 @@ int main(int argc, const char ** argcv){
                     deleted[j] = true;
                 }
             }
-
             updatePosition(universe, i, time_step);
             reboundEffect(universe, i, size_enclosure);
     
