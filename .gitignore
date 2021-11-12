@@ -2,6 +2,8 @@
 cmake-*
 .vscode
 
+build
+
 test*
 sim-v[0-9]-log
 *.txt
