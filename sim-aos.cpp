@@ -43,6 +43,97 @@ const double g = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
 
 
+int checkArguments(int argc, const char ** argcv){
+    /*
+    Checks the arguments of the program and returns the
+    error codes.
+    */
+    
+    // check number of parameters
+    if(argc < 6){
+        switch(argc){
+            case 5:
+                cerr  << "sim-soa invoked with " << argc << " parameters."
+                 << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+                 << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+                 << argcv[3] << endl << " size_enclosure: " << argcv[4] << endl
+                 << " time_step: ?"<< endl;
+                return -1;
+            case 4:
+                cerr << "sim-soa invoked with " << argc << " parameters."
+                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+                     << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+                     << argcv[3] << endl << " size_enclosure: ?"<< endl
+                     << " time_step: ?"<< endl;
+                return -1;
+            case 3:
+                cerr << "sim-soa invoked with " << argc << " parameters."
+                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+                     << endl << " num_iterations: " << argcv[2] << endl << " random_seed: ?"
+                     << endl << " size_enclosure: ?"<< endl
+                     << " time_step: ?"<< endl;
+                return -1;
+            case 2:
+                cerr << "sim-soa invoked with " << argc << " parameters."
+                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+                     << endl << " num_iterations: ?" << endl << " random_seed: ?"
+                     << endl << " size_enclosure: ?"<< endl
+                     << " time_step: ?"<< endl;
+                return -1;
+            case 1:
+                cerr << "sim-soa invoked with " << argc << " parameters."
+                     << endl << "Arguments: "<< endl << " num_objects: ?"
+                     << endl << " num_iterations: ?" << endl << " random_seed: ?"
+                     << endl << " size_enclosure: ?"<< endl
+                     << " time_step: ?"<< endl;
+                return -1;
+        }
+    } else if(argc > 6){
+        cerr << "sim-soa invoked with " << argc << " parameters."
+             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+             << argcv[3] << endl << " size_enclosure: " << argcv[4] << endl
+             << " time_step: "<< argcv[5] << endl;
+        return -1;
+    }
+
+    // check correct parameters
+    if(argcv[1] <= 0){ // num_objects
+        cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
+              << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+              << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+              << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
+              << " time_step: "<< argcv[5] << endl;
+        return -2;
+    }
+    if(argcv[2] <= 0){ // num_iterations
+        cerr << "Invalid number of iterations "<<endl << "sim-aos invoked with " << argc << " parameters."
+             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
+             << " time_step: "<< argcv[5] << endl;
+        return -2;
+    }
+    if(argcv[3] <= 0){ // random_seed
+        cerr << "Invalid seed "<<endl << "sim-aos invoked with " << argc << " parameters."
+             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
+             << " time_step: "<< argcv[5] << endl;
+        return -2;
+    }
+    if(argcv[4] <= 0){ // size_enclosure
+        cerr << "Invalid box size "<< endl << "sim-aos invoked with " << argc << " parameters."
+             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
+             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
+             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
+             << " time_step: "<< argcv[5] << endl;
+        return -2;
+    }
+    return 0;
+}
+
+
 Object * bigBang(int num_objects, int size_enclosure, int random_seed, int time_step){
     /*
     Creates the universe and populates it. Also fills init_config.txt.
@@ -53,27 +144,24 @@ Object * bigBang(int num_objects, int size_enclosure, int random_seed, int time_
     mt19937_64 gen64;  // generate object
     uniform_real_distribution<> dis(0.0, size_enclosure);
     normal_distribution<> d{1e21, 1e15};
-    
-    gen64.seed(random_seed);  // introduce seed
+    gen64.seed(random_seed);
 
     // memory alloc
     Object * universe = (Object*)malloc(sizeof(Object) * num_objects);
     
     // init file
     ofstream inFile("init_config.txt", ofstream::out);  // open file
-    
     inFile << fixed << setprecision(3) << size_enclosure << " " << time_step << " " << num_objects << endl;
 
     // populate
-
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < num_objects; i++){
         double x = dis(gen64);
         double y = dis(gen64);
         double z = dis(gen64);
         double m = d(gen64);
 
-        #pragma omp critical
+        //#pragma omp critical
         universe[i] = Object(x, y, z, m);
         // write to file
         inFile << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
@@ -128,7 +216,7 @@ void mergeObjects(Object *a, Object *b){
 bool forceComputation(Object *a, Object *b){
     /*
     Calculates the force between two objects and updates it.
-    Returns true if there was a colision, false else.
+    Returns false if there was a colision, true else.
     */
 
     // distance
@@ -145,7 +233,7 @@ bool forceComputation(Object *a, Object *b){
 
         // force between a & b is 0
 
-        return true;  // flag colision
+        return false;  // flag colision
 
     } else{
         const double dfx = (g * a->m * b->m * dx) / (distance*distance*distance);
@@ -161,9 +249,8 @@ bool forceComputation(Object *a, Object *b){
         b->fx -= dfx;
         b->fy -= dfy;
         b->fz -= dfz;
-
-        return false;
     }
+    return true;
 }
 
 
@@ -200,6 +287,28 @@ void reboundEffect(Object *a, int size_enclosure){
 
 int main(int argc, const char ** argcv){
 
+    /* ---
+    PARAMETERS
+    --- */
+
+    const int aerror = checkArguments(argc, argcv);
+
+    if(aerror < 0){
+        return aerror;
+    }
+
+    // parameters init & casting
+    const int num_objects = atoi(argcv[1]);
+    const int num_iterations = atoi(argcv[2]);
+    const int random_seed = atoi(argcv[3]);
+    const double size_enclosure = atof(argcv[4]);
+    const double time_step = atof(argcv[5]);
+
+
+    /* ---
+    INITIALIZATION
+    --- */
+
     // thread setup
     const int threads = omp_get_num_threads();
 
@@ -211,104 +320,6 @@ int main(int argc, const char ** argcv){
     #pragma omp parallel num_threads(threads);
 
 
-    /* ---
-    PARAMETERS
-    --- */
-
-    // check argc
-    if(argc < 6){
-        switch(argc){
-            case 5:
-                cerr  << "sim-soa invoked with " << argc << " parameters."
-                 << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-                 << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-                 << argcv[3] << endl << " size_enclosure: " << argcv[4] << endl
-                 << " time_step: ?"<< endl;
-                break;
-            case 4:
-                cerr << "sim-soa invoked with " << argc << " parameters."
-                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-                     << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-                     << argcv[3] << endl << " size_enclosure: ?"<< endl
-                     << " time_step: ?"<< endl;
-                break;
-            case 3:
-                cerr << "sim-soa invoked with " << argc << " parameters."
-                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-                     << endl << " num_iterations: " << argcv[2] << endl << " random_seed: ?"
-                     << endl << " size_enclosure: ?"<< endl
-                     << " time_step: ?"<< endl;
-                break;
-            case 2:
-                cerr << "sim-soa invoked with " << argc << " parameters."
-                     << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-                     << endl << " num_iterations: ?" << endl << " random_seed: ?"
-                     << endl << " size_enclosure: ?"<< endl
-                     << " time_step: ?"<< endl;
-                break;
-            case 1:
-                cerr << "sim-soa invoked with " << argc << " parameters."
-                     << endl << "Arguments: "<< endl << " num_objects: ?"
-                     << endl << " num_iterations: ?" << endl << " random_seed: ?"
-                     << endl << " size_enclosure: ?"<< endl
-                     << " time_step: ?"<< endl;
-                break;
-        }
-        return -1;
-    } else if(argc > 6){
-        cerr << "sim-soa invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " << argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
-        return -1;
-    }
-
-    // parameters init & casting
-    const int num_objects = atoi(argcv[1]);
-    const int num_iterations = atoi(argcv[2]);
-    const int random_seed = atoi(argcv[3]);
-    const double size_enclosure = atof(argcv[4]);
-    const double time_step = atof(argcv[5]);
-
-    // check correct parameters
-    if(num_objects <= 0){
-        cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
-              << endl << "Arguments: "<< endl << " num_objects: " << num_objects
-              << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-              << random_seed << endl << " size_enclosure: " <<size_enclosure << endl
-              << " time_step: "<< time_step << endl;
-        return -2;
-    }
-    if(num_iterations <= 0){
-        cerr << "Invalid number of iterations "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
-             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-             << random_seed << endl << " size_enclosure: " <<size_enclosure << endl
-             << " time_step: "<< time_step << endl;
-        return -2;
-    }
-    if(random_seed<= 0){
-        cerr << "Invalid seed "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
-             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-             << random_seed << endl << " size_enclosure: " <<size_enclosure << endl
-             << " time_step: "<< time_step << endl;
-        return -2;
-    }
-    if(size_enclosure<= 0){
-        cerr << "Invalid box size "<< endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
-             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-             << random_seed << endl << " size_enclosure: " <<size_enclosure << endl
-             << " time_step: "<< time_step << endl;
-        return -2;
-    }
-
-    /* ---
-    INITIALIZATION
-    --- */
-
     Object * universe = bigBang(num_objects, size_enclosure, random_seed, time_step);
 
     // prepare output
@@ -318,6 +329,7 @@ int main(int argc, const char ** argcv){
     // extra vars
     int curr_objects = num_objects;
     bool *deleted = (bool *)calloc(num_objects, sizeof(bool)); // bytemap of objects -> if true, object is deleted
+
 
     /* ---
     KERNEL
@@ -335,7 +347,7 @@ int main(int argc, const char ** argcv){
                 
                 Object *b = &universe[j];
 
-                if(forceComputation(a, b)){
+                if(not forceComputation(a, b)){
                     // delete b
                     curr_objects--;
                     deleted[j] = true;
