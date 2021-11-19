@@ -41,7 +41,7 @@ CONSTANTS
 --- */
 const double g = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
-const int THREAD_NUM = ;
+const int THREAD_NUM = 4 ;
 
 
 int checkArguments(int argc, const char ** argcv){
