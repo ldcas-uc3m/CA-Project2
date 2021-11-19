@@ -41,6 +41,7 @@ CONSTANTS
 --- */
 const double g = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
+const int THREAD_NUM = ;
 
 
 int checkArguments(int argc, const char ** argcv){
@@ -48,7 +49,7 @@ int checkArguments(int argc, const char ** argcv){
     Checks the arguments of the program and returns the
     error codes.
     */
-    
+
     // check number of parameters
     if(argc < 6){
         switch(argc){
@@ -96,42 +97,48 @@ int checkArguments(int argc, const char ** argcv){
              << " time_step: "<< argcv[5] << endl;
         return -1;
     }
+    const int num_objects = atoi(argcv[1]);
+    const int num_iterations = atoi(argcv[2]);
+    const int random_seed = atoi(argcv[3]);
+    const double size_enclosure = atof(argcv[4]);
+    const double time_step = atof(argcv[5]);
 
     // check correct parameters
-    if(argcv[1] <= 0){ // num_objects
+    if(num_objects <= 0){ // num_objects
         cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
-              << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-              << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-              << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-              << " time_step: "<< argcv[5] << endl;
+              << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+              << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+              << random_seed << endl << " size_enclosure: " <<argcv[4] << endl
+              << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[2] <= 0){ // num_iterations
+    if(num_iterations <= 0){ // num_iterations
         cerr << "Invalid number of iterations "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[3] <= 0){ // random_seed
+    if(random_seed <= 0){ // random_seed
         cerr << "Invalid seed "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[4] <= 0){ // size_enclosure
+    if(size_enclosure <= 0){ // size_enclosure
         cerr << "Invalid box size "<< endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
     return 0;
 }
+
 
 
 Object * bigBang(int num_objects, int size_enclosure, int random_seed, int time_step){
@@ -154,15 +161,15 @@ Object * bigBang(int num_objects, int size_enclosure, int random_seed, int time_
     inFile << fixed << setprecision(3) << size_enclosure << " " << time_step << " " << num_objects << endl;
 
     // populate
-    //#pragma omp parallel for
-    for (int i = 0; i < num_objects; i++){
+    for(int i = 0; i < num_objects; i++){
+        
         double x = dis(gen64);
         double y = dis(gen64);
         double z = dis(gen64);
         double m = d(gen64);
-
-        //#pragma omp critical
+        
         universe[i] = Object(x, y, z, m);
+
         // write to file
         inFile << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
         << " " << universe[i].vx << " " << universe[i].vy << " " << universe[i].vz 
@@ -209,7 +216,7 @@ void mergeObjects(Object *a, Object *b){
     a->vy = a->vy + b->vy;
     a->vz = a->vz + b->vz;
 
-    delete(&b);
+    //delete(&b);
 }
 
 
@@ -310,18 +317,15 @@ int main(int argc, const char ** argcv){
     --- */
 
     // thread setup
-    const int threads = omp_get_num_threads();
-
+    //const int threads = omp_get_num_threads();
+    /*
     if(threads < 4){
         cerr << "Not enough threads" << endl;
         return -1;
-    }
-
-    #pragma omp parallel num_threads(threads);
-
+    }*/
 
     Object * universe = bigBang(num_objects, size_enclosure, random_seed, time_step);
-
+    
     // prepare output
     ofstream outFile("final_config.txt");
     outFile << fixed << setprecision(3) << size_enclosure << " " << time_step << " " << num_objects << endl;
@@ -334,14 +338,16 @@ int main(int argc, const char ** argcv){
     /* ---
     KERNEL
     --- */
- 
+    
     for(int iteration = 0; iteration < num_iterations; iteration++){
         if(curr_objects == 1) break;
+        
+        #pragma omp parallel for num_threads(4) ordered
         for(int i = 0; i < num_objects; i++){
             if(deleted[i]) continue;
             Object *a = &universe[i];
 
-            //#pragma omp parallel for reduction(+:sum)
+            #pragma omp parallel for num_threads(THREAD_NUM)
             for(int j = i + 1; j < num_objects; j++){
                 if(deleted[j]) continue;
                 
@@ -353,9 +359,11 @@ int main(int argc, const char ** argcv){
                     deleted[j] = true;
                 }
             }
+
             updatePosition(a, time_step);
             reboundEffect(a, size_enclosure);
 
+            #pragma omp ordered
             if((iteration == num_iterations - 1) || curr_objects == 1){  // final positions
                 // print to output
                 outFile << fixed << setprecision(3) << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
