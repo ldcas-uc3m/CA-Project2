@@ -100,38 +100,43 @@ int checkArguments(int argc, const char ** argcv){
              << " time_step: "<< argcv[5] << endl;
         return -1;
     }
+    const int num_objects = atoi(argcv[1]);
+    const int num_iterations = atoi(argcv[2]);
+    const int random_seed = atoi(argcv[3]);
+    const double size_enclosure = atof(argcv[4]);
+    const double time_step = atof(argcv[5]);
 
     // check correct parameters
-    if(argcv[1] <= 0){ // num_objects
+    if(num_objects <= 0){ // num_objects
         cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
-              << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-              << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-              << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-              << " time_step: "<< argcv[5] << endl;
+              << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+              << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+              << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+              << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[2] <= 0){ // num_iterations
+    if(num_iterations <= 0){ // num_iterations
         cerr << "Invalid number of iterations "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[3] <= 0){ // random_seed
+    if(random_seed <= 0){ // random_seed
         cerr << "Invalid seed "<<endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
-    if(argcv[4] <= 0){ // size_enclosure
+    if(size_enclosure <= 0){ // size_enclosure
         cerr << "Invalid box size "<< endl << "sim-aos invoked with " << argc << " parameters."
-             << endl << "Arguments: "<< endl << " num_objects: " << argcv[1]
-             << endl << " num_iterations: " << argcv[2] << endl << " random_seed: "
-             << argcv[3] << endl << " size_enclosure: " <<argcv[4] << endl
-             << " time_step: "<< argcv[5] << endl;
+             << endl << "Arguments: "<< endl << " num_objects: " << num_objects
+             << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
+             << random_seed << endl << " size_enclosure: " << size_enclosure << endl
+             << " time_step: "<< time_step << endl;
         return -2;
     }
     return 0;
@@ -337,6 +342,7 @@ int main(int argc, const char ** argcv){
             }
         }
     }
+
 
     outFile.close();
     return 0;
