@@ -338,39 +338,42 @@ int main(int argc, const char ** argcv){
     /* ---
     KERNEL
     --- */
-    
+
+    #pragma omp parallel for ordered 
     for(int iteration = 0; iteration < num_iterations; iteration++){
-        if(curr_objects == 1) break;
-        
-        #pragma omp parallel for num_threads(4) ordered
-        for(int i = 0; i < num_objects; i++){
-            if(deleted[i]) continue;
-            Object *a = &universe[i];
+        #pragma omp ordered
+        if(curr_objects != 1){
+            for(int i = 0; i < num_objects; i++){
+                if(!deleted[i]){
+                    Object *a = &universe[i];
+                    
+                    for(int j = i + 1; j < num_objects; j++){
+                        if(!deleted[j]){ 
+                            Object *b = &universe[j];
+                            //#pragma omp critical
+                            if(not forceComputation(a, b)){
+                                // delete b
+                                curr_objects--;
 
-            #pragma omp parallel for num_threads(THREAD_NUM)
-            for(int j = i + 1; j < num_objects; j++){
-                if(deleted[j]) continue;
-                
-                Object *b = &universe[j];
-
-                if(not forceComputation(a, b)){
-                    // delete b
-                    curr_objects--;
-                    deleted[j] = true;
-                }
-            }
-
-            updatePosition(a, time_step);
-            reboundEffect(a, size_enclosure);
-
-            #pragma omp ordered
-            if((iteration == num_iterations - 1) || curr_objects == 1){  // final positions
-                // print to output
-                outFile << fixed << setprecision(3) << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
-                << " " << universe[i].vx << " " << universe[i].vy << " " << universe[i].vz 
-                << " " << universe[i].m << endl;
-            }
-        }
+                                deleted[j] = true;
+                            }
+                        }
+                    } 
+                 //   #pragma omp critical
+                   // {               
+                    updatePosition(a, time_step);
+                    reboundEffect(a, size_enclosure);
+                    //}
+                    if((iteration == num_iterations - 1) || curr_objects == 1){  // final positions
+                        // print to output
+                        #pragma omp critical
+                        outFile << fixed << setprecision(3) << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
+                        << " " << universe[i].vx << " " << universe[i].vy << " " << universe[i].vz 
+                        << " " << universe[i].m << endl;
+                    }
+                }                                
+            }       
+        }           
     }
     outFile.close();
     return 0;
