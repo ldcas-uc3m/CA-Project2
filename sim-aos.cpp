@@ -108,7 +108,7 @@ int checkArguments(int argc, const char ** argcv){
         cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
               << endl << "Arguments: "<< endl << " num_objects: " << num_objects
               << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-              << random_seed << endl << " size_enclosure: " <<argcv[4] << endl
+              << random_seed << endl << " size_enclosure: " << size_enclosure << endl
               << " time_step: "<< time_step << endl;
         return -2;
     }
