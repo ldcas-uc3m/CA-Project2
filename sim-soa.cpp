@@ -46,6 +46,7 @@ CONSTANTS
 const double G = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
 
+bool colition; 
 
 int checkArguments(int argc, const char ** argcv){
     /*
@@ -252,7 +253,7 @@ bool forceComputation(Universe universe, int i, int j){
     const double dy = universe.py[j] - universe.py[i];
     const double dz = universe.pz[j] - universe.pz[i];
     const double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-
+  
     if(distance <= COL_DISTANCE){ // Object colision
 
         mergeObjects(universe, i, j);
@@ -316,16 +317,16 @@ int main(int argc, const char ** argcv){
     /* ---
     KERNEL
     --- */
-    #pragma omp parallel for ordered
+  //  #pragma omp parallel for ordered
     for(int iteration = 0; iteration < num_iterations; iteration++){
-        #pragma omp ordered
+       // #pragma omp ordered
         if(curr_objects != 1){
             for(int i = 0; i < num_objects; i++){
                 if(!deleted[i]){
-
+                    #pragma omp parallel for ordered
                     for(int j = i + 1; j < num_objects; j++){
+                        #pragma omp ordered
                         if(!deleted[j]){
-                    
                         if(not forceComputation(universe, i, j)){
                             // delete b
                             curr_objects--;
@@ -338,7 +339,7 @@ int main(int argc, const char ** argcv){
                     reboundEffect(universe, i, size_enclosure);
         
                     if((iteration == num_iterations - 1) ||  curr_objects == 1){  // final positions
-                        #pragma omp critical
+                        //#pragma omp critical
                         outFile << fixed << setprecision(3)  << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i] 
                         << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
                         << " " << universe.m[i] << endl;
