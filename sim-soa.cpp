@@ -323,9 +323,9 @@ int main(int argc, const char ** argcv){
         if(curr_objects != 1){
             for(int i = 0; i < num_objects; i++){
                 if(!deleted[i]){
-                    #pragma omp parallel for ordered
+                    #pragma omp parallel for
                     for(int j = i + 1; j < num_objects; j++){
-                        #pragma omp ordered
+                        //#pragma omp ordered
                         if(!deleted[j]){
                         if(not forceComputation(universe, i, j)){
                             // delete b
