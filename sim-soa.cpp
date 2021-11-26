@@ -111,6 +111,7 @@ int checkArguments(int argc, const char ** argcv){
     const int random_seed = atoi(argcv[3]);
     const double size_enclosure = atof(argcv[4]);
     const double time_step = atof(argcv[5]);
+
     // check correct parameters
     if(num_objects <= 0){ // num_objects
         cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
@@ -360,6 +361,7 @@ int main(int argc, const char ** argcv){
             }
         }
     }
+
 
     outFile.close();
     return 0;
