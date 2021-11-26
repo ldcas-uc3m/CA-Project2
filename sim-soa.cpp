@@ -8,6 +8,11 @@ using namespace std;
 #include <fstream>
 #include <iomanip>
 
+struct Force{
+    double fx;
+    double fy;
+    double fz;
+};
 
 class Universe{
     public:
@@ -46,6 +51,7 @@ CONSTANTS
 const double G = 6.674e-11;
 const double COL_DISTANCE = 1;  // minimum colision distance
 
+bool colition; 
 
 int checkArguments(int argc, const char ** argcv){
     /*
@@ -176,7 +182,7 @@ Universe bigBang(double size_enclosure, int random_seed, int num_objects, int ti
 }
 
 
-void mergeObjects(Universe universe, int i, int j){
+void mergeObjects(Universe universe, int i, int j, int curr_objects, bool *deleted){
     /*
     Merges two objects.
     */
@@ -185,6 +191,9 @@ void mergeObjects(Universe universe, int i, int j){
     universe.vy[i] = universe.vy[i] + universe.vy[j];
     universe.vz[i] = universe.vz[i] + universe.vz[j];
     universe.m[i] = universe.m[i] + universe.m[j];
+
+    curr_objects--;
+    deleted[j] = true;
 }
 
 
@@ -242,7 +251,7 @@ void reboundEffect(Universe universe, int i, int size_enclosure){
 }
 
 
-bool forceComputation(Universe universe, int i, int j){
+Force forceComputation(Universe universe, int i, int j, int current_objects, bool *deleted){
     /*
     Calculates the force between two objects and updates it.
     Returns false if there was a colision, true else.
@@ -253,12 +262,13 @@ bool forceComputation(Universe universe, int i, int j){
     const double dy = universe.py[j] - universe.py[i];
     const double dz = universe.pz[j] - universe.pz[i];
     const double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    
+    struct Force force{0, 0, 0};
 
     if(distance <= COL_DISTANCE){ // Object colision
 
-        mergeObjects(universe, i, j);
+        mergeObjects(universe, i, j, current_objects, deleted);
         // force between a & b is 0
-        return false;  // flag colision
 
     } else{
     
@@ -267,16 +277,16 @@ bool forceComputation(Universe universe, int i, int j){
         const double dfz = (G * universe.m[i] * universe.m[j] * dz) / (distance*distance*distance);
 
         // a forces
-        universe.fx[i] += dfx;
-        universe.fy[i] += dfy;
-        universe.fz[i] += dfz;
+        force.fx = dfx;
+        force.fy = dfy;
+        force.fz = dfz;
 
         // b forces
         universe.fx[j] -= dfx;
         universe.fy[j] -= dfy;
         universe.fz[j] -= dfz;
     }
-    return true;
+    return force;
 }
 
 
@@ -317,28 +327,37 @@ int main(int argc, const char ** argcv){
     /* ---
     KERNEL
     --- */
-    
     for(int iteration = 0; iteration < num_iterations; iteration++){
-        if(curr_objects == 1) break;
-        for(int i = 0; i < num_objects; i++){
-            if(deleted[i]) continue;
 
-            for(int j = i + 1; j < num_objects; j++){
-                if(deleted[j]) continue;
-                
-                if(not forceComputation(universe, i, j)){
-                    // delete b
-                    curr_objects--;
-                    deleted[j] = true;
+        if(curr_objects != 1){
+            for(int i = 0; i < num_objects; i++){
+                if(!deleted[i]){
+                    double dfx = 0; double dfy = 0; double dfz = 0;
+                    #pragma omp parallel for reduction(+:dfx,dfy,dfz)
+                    for(int j = i + 1; j < num_objects; j++){
+
+                        if(!deleted[j]){
+                            struct Force force = forceComputation(universe, i, j, curr_objects, deleted);
+                            dfx += force.fx;
+                            dfy += force.fy;
+                            dfz += force.fz;
+                        }
+                    }
+                    // take into account the pre-saved forces on a
+                    universe.fx[i] += dfx;
+                    universe.fy[i] += dfy;
+                    universe.fz[i] += dfz;
+                    dfx = 0; dfy = 0; dfz = 0;
+                    updatePosition(universe, i, time_step);
+                    reboundEffect(universe, i, size_enclosure);
+        
+                    if((iteration == num_iterations - 1) ||  curr_objects == 1){  // final positions
+                        //#pragma omp critical
+                        outFile << fixed << setprecision(3)  << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i] 
+                        << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
+                        << " " << universe.m[i] << endl;
+                    }
                 }
-            }
-            updatePosition(universe, i, time_step);
-            reboundEffect(universe, i, size_enclosure);
-    
-            if((iteration == num_iterations - 1) ||  curr_objects == 1){  // final positions
-                outFile << fixed << setprecision(3)  << universe.px[i] << " " << universe.py[i] << " " << universe.pz[i] 
-                << " " << universe.vx[i] << " " << universe.vy[i] << " " << universe.vz[i] 
-                << " " << universe.m[i] << endl;
             }
         }
     }
