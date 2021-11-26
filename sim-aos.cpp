@@ -340,9 +340,9 @@ int main(int argc, const char ** argcv){
 
         if(curr_objects != 1){
             for(int i = 0; i < num_objects; i++){
+                double dfx = 0; double dfy = 0; double dfz = 0;
                 if(!deleted[i]){
                     Object *a = &universe[i];
-                    double dfx = 0; double dfy = 0; double dfz = 0;
                     #pragma omp parallel for reduction(+:dfx,dfy,dfz)
                     for(int j = i + 1; j < num_objects; j++){
                         
@@ -358,7 +358,6 @@ int main(int argc, const char ** argcv){
                     a->fx += dfx;
                     a->fy += dfy;
                     a->fz += dfz;
-                    dfx = 0; dfy = 0; dfz = 0;
                     updatePosition(a, time_step);
                     reboundEffect(a, size_enclosure);
                     
