@@ -339,14 +339,14 @@ int main(int argc, const char ** argcv){
     KERNEL
     --- */
 
-    #pragma omp parallel for ordered 
+//    #pragma omp parallel for ordered 
     for(int iteration = 0; iteration < num_iterations; iteration++){
-        #pragma omp ordered
+  //      #pragma omp ordered
         if(curr_objects != 1){
             for(int i = 0; i < num_objects; i++){
                 if(!deleted[i]){
                     Object *a = &universe[i];
-                    
+                    //#pragma omp parallel for
                     for(int j = i + 1; j < num_objects; j++){
                         if(!deleted[j]){ 
                             Object *b = &universe[j];
