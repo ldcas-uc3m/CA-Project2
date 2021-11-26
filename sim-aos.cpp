@@ -245,6 +245,7 @@ Force forceComputation(Object *a, Object *b, int curr_objects, bool *deleted, in
     if(distance <= COL_DISTANCE){
         // Object colision
 
+        #pragma omp atomic
         mergeObjects(a, b, curr_objects, deleted, j);
 
         // force between a & b is 0
