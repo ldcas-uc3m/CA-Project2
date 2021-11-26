@@ -316,14 +316,6 @@ int main(int argc, const char ** argcv){
     INITIALIZATION
     --- */
 
-    // thread setup
-    //const int threads = omp_get_num_threads();
-    /*
-    if(threads < 4){
-        cerr << "Not enough threads" << endl;
-        return -1;
-    }*/
-
     Object * universe = bigBang(num_objects, size_enclosure, random_seed, time_step);
     
     // prepare output
