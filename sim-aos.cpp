@@ -214,7 +214,7 @@ void mergeObjects(Object *a, Object *b, int curr_objects, bool deleted[], int j)
     /*
     Merges two objects into one.
     */
-
+    #pragma omp atomic
     // merge objects into a
     a->m = a->m + b->m;
     a->vx = a->vx + b->vx;
@@ -245,7 +245,6 @@ Force forceComputation(Object *a, Object *b, int curr_objects, bool *deleted, in
     if(distance <= COL_DISTANCE){
         // Object colision
 
-        #pragma omp atomic
         mergeObjects(a, b, curr_objects, deleted, j);
 
         // force between a & b is 0
