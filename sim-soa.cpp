@@ -186,7 +186,7 @@ void mergeObjects(Universe universe, int i, int j, int curr_objects, bool *delet
     /*
     Merges two objects.
     */
-
+    #pragma omp atomic
     universe.vx[i] = universe.vx[i] + universe.vx[j];
     universe.vy[i] = universe.vy[i] + universe.vy[j];
     universe.vz[i] = universe.vz[i] + universe.vz[j];
@@ -265,8 +265,9 @@ Force forceComputation(Universe universe, int i, int j, int current_objects, boo
     
     struct Force force{0, 0, 0};
 
+    
     if(distance <= COL_DISTANCE){ // Object colision
-
+ 
         mergeObjects(universe, i, j, current_objects, deleted);
         // force between a & b is 0
 
