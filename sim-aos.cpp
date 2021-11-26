@@ -9,6 +9,11 @@ using namespace std;
 #include <iomanip>
 #include <omp.h>
 
+struct Force{
+    double fx;
+    double fy;
+    double fz;
+};
 
 class Object{
     public:
@@ -108,7 +113,7 @@ int checkArguments(int argc, const char ** argcv){
         cerr << "Invalid number of object "<<endl << "sim-aos invoked with " << argc << " parameters."
               << endl << "Arguments: "<< endl << " num_objects: " << num_objects
               << endl << " num_iterations: " << num_iterations << endl << " random_seed: "
-              << random_seed << endl << " size_enclosure: " <<argcv[4] << endl
+              << random_seed << endl << " size_enclosure: " << size_enclosure << endl
               << " time_step: "<< time_step << endl;
         return -2;
     }
@@ -205,7 +210,7 @@ void updatePosition(Object *a, double time_step){
 }
 
 
-void mergeObjects(Object *a, Object *b){
+void mergeObjects(Object *a, Object *b, int curr_objects, bool deleted[], int j){
     /*
     Merges two objects into one.
     */
@@ -217,10 +222,12 @@ void mergeObjects(Object *a, Object *b){
     a->vz = a->vz + b->vz;
 
     //delete(&b);
+    curr_objects--;
+    deleted[j] = true;
 }
 
 
-bool forceComputation(Object *a, Object *b){
+Force forceComputation(Object *a, Object *b, int curr_objects, bool *deleted, int j){
     /*
     Calculates the force between two objects and updates it.
     Returns false if there was a colision, true else.
@@ -233,31 +240,30 @@ bool forceComputation(Object *a, Object *b){
     const double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
     /* note these vars are constant bc they will be out of scope outside the function */
 
+    struct Force force{0, 0, 0};
+
     if(distance <= COL_DISTANCE){
         // Object colision
 
-        mergeObjects(a, b);
+        mergeObjects(a, b, curr_objects, deleted, j);
 
         // force between a & b is 0
-
-        return false;  // flag colision
 
     } else{
         const double dfx = (g * a->m * b->m * dx) / (distance*distance*distance);
         const double dfy = (g * a->m * b->m * dy) / (distance*distance*distance);
         const double dfz = (g * a->m * b->m * dz) / (distance*distance*distance);
-    
-        // a force
-        a->fx += dfx;
-        a->fy += dfy;
-        a->fz += dfz;
 
+        force.fx = dfx;
+        force.fy = dfy;
+        force.fz = dfz;
+        
         // b force
         b->fx -= dfx;
         b->fy -= dfy;
         b->fz -= dfz;
     }
-    return true;
+    return force;
 }
 
 
@@ -330,39 +336,42 @@ int main(int argc, const char ** argcv){
     /* ---
     KERNEL
     --- */
-    
     for(int iteration = 0; iteration < num_iterations; iteration++){
-        if(curr_objects == 1) break;
-        
-        #pragma omp parallel for num_threads(4) ordered
-        for(int i = 0; i < num_objects; i++){
-            if(deleted[i]) continue;
-            Object *a = &universe[i];
 
-            #pragma omp parallel for num_threads(THREAD_NUM)
-            for(int j = i + 1; j < num_objects; j++){
-                if(deleted[j]) continue;
-                
-                Object *b = &universe[j];
+        if(curr_objects != 1){
+            for(int i = 0; i < num_objects; i++){
+                if(!deleted[i]){
+                    Object *a = &universe[i];
+                    double dfx = 0; double dfy = 0; double dfz = 0;
+                    #pragma omp parallel for reduction(+:dfx,dfy,dfz)
+                    for(int j = i + 1; j < num_objects; j++){
+                        
+                        if(!deleted[j]){
+                            Object *b = &universe[j];
+                            struct Force force = forceComputation(a, b, curr_objects, deleted, j);
+                            dfx += force.fx;
+                            dfy += force.fy;
+                            dfz += force.fz;
+                        }
+                    }
+                    // take into account the pre-saved forces on a
+                    a->fx += dfx;
+                    a->fy += dfy;
+                    a->fz += dfz;
+                    dfx = 0; dfy = 0; dfz = 0;
+                    updatePosition(a, time_step);
+                    reboundEffect(a, size_enclosure);
+                    
 
-                if(not forceComputation(a, b)){
-                    // delete b
-                    curr_objects--;
-                    deleted[j] = true;
-                }
-            }
-
-            updatePosition(a, time_step);
-            reboundEffect(a, size_enclosure);
-
-            #pragma omp ordered
-            if((iteration == num_iterations - 1) || curr_objects == 1){  // final positions
-                // print to output
-                outFile << fixed << setprecision(3) << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
-                << " " << universe[i].vx << " " << universe[i].vy << " " << universe[i].vz 
-                << " " << universe[i].m << endl;
-            }
-        }
+                    if((iteration == num_iterations - 1) || curr_objects == 1){  // final positions
+                        // print to output
+                        outFile << fixed << setprecision(3) << universe[i].px << " " << universe[i].py << " " << universe[i].pz 
+                        << " " << universe[i].vx << " " << universe[i].vy << " " << universe[i].vz 
+                        << " " << universe[i].m << endl;
+                    }
+                }                                
+            }       
+        }           
     }
     outFile.close();
     return 0;
